@@ -1,0 +1,15 @@
+{
+  "blocked_keys": [
+    "cmd+q",
+    "cmd+shift+q",
+    "ctrl+alt+delete",
+    "cmd+option+eject",
+    "cmd+shift+delete"
+  ],
+  "blocked_apps_focus": [],
+  "allow_destructive": false,
+  "allow_file_delete": false,
+  "max_steps": 60,
+  "max_roadblocks": 5,
+  "comment": "Sovereign Nexus safety perimeter — edit to relax or tighten constraints"
+}

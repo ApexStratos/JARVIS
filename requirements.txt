@@ -1,0 +1,39 @@
+# Core server
+flask>=3.1.0
+flask-cors>=6.0.0
+flask-sock>=0.7.0
+python-dotenv>=1.0.0
+psutil>=6.0.0
+
+# Telephony (live phone calling — Twilio Programmable Voice + Media Streams)
+twilio>=9.0.0
+
+# Language detection
+langdetect>=1.0.9
+faster-whisper>=1.0.0
+
+# TTS engines
+kokoro-onnx>=0.4.0
+chatterbox-tts>=0.1.0
+soundfile>=0.12.0
+
+# AI / LLM
+anthropic>=0.100.0
+ollama>=0.5.0
+
+# Utilities
+requests>=2.31.0
+numpy>=1.24.0
+
+# Cross-platform OS integration (clipboard, notifications, local TTS
+# fallback, screenshots, screen/keyboard automation — see
+# app/os_adapter.py). mss/Pillow/pyautogui/qrcode/pyperclip were already in
+# use but missing from this file — a fresh install would have ImportError'd
+# on SCREENSHOT/QR/TYPE/HOTKEY/BROWSER_NAV/BROWSER_JS.
+pyperclip>=1.8.0
+plyer>=2.1.0
+pyttsx3>=2.90
+mss>=9.0.0
+Pillow>=10.0.0
+pyautogui>=0.9.54
+qrcode>=7.4.0

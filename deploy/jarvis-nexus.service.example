@@ -1,0 +1,26 @@
+# Linux systemd user service — runs JARVIS Nexus at login, restarts on crash.
+#
+# Setup:
+#   1. Copy this file to ~/.config/systemd/user/jarvis-nexus.service
+#   2. Replace __INSTALL_DIR__ and __PYTHON__ below with real paths
+#      (run: pwd   and   command -v python3.13 || command -v python3)
+#   3. systemctl --user daemon-reload
+#   4. systemctl --user enable --now jarvis-nexus
+#   5. loginctl enable-linger $USER   (so it keeps running after you log out)
+#
+# Logs: journalctl --user -u jarvis-nexus -f
+
+[Unit]
+Description=JARVIS Nexus
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=__INSTALL_DIR__
+ExecStart=__PYTHON__ __INSTALL_DIR__/server.py
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

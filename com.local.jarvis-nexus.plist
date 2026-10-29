@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.local.jarvis-nexus</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/zsh</string>
+        <string>__INSTALL_DIR__/run_nexus.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__INSTALL_DIR__</string>
+
+    <!-- Auto-start at login and keep alive 24/7 -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Minimum 5s between restart attempts to prevent runaway loops -->
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+
+    <!-- Logs -->
+    <key>StandardOutPath</key>
+    <string>__INSTALL_DIR__/jarvis-nexus.out</string>
+    <key>StandardErrorPath</key>
+    <string>__INSTALL_DIR__/jarvis-nexus.err</string>
+
+    <!-- Low IO priority — don't starve synthesis requests -->
+    <key>LowPriorityIO</key>
+    <true/>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>__HOME__</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+    </dict>
+</dict>
+</plist>

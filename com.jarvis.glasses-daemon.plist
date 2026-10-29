@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+  <key>Label</key>
+  <string>com.jarvis.glasses-daemon</string>
+
+  <!--
+    ProgramArguments: run the BLE daemon inside the JARVIS venv so all
+    dependencies (bleak, faster-whisper, dotenv) are available.
+  -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>__INSTALL_DIR__/venv/bin/python</string>
+    <string>__INSTALL_DIR__/glasses_ble_daemon.py</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__INSTALL_DIR__</string>
+
+  <!-- Start automatically at login -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- Restart on crash or exit (mode-router exits cleanly when leaving home,
+       so this will re-launch when the Mac returns to home WiFi) -->
+  <key>KeepAlive</key>
+  <dict>
+    <key>Crashed</key>
+    <true/>
+  </dict>
+
+  <!-- Throttle restart to avoid CPU spin on repeated failures -->
+  <key>ThrottleInterval</key>
+  <integer>15</integer>
+
+  <key>StandardOutPath</key>
+  <string>__INSTALL_DIR__/glasses-daemon.out</string>
+
+  <key>StandardErrorPath</key>
+  <string>__INSTALL_DIR__/glasses-daemon.err</string>
+
+  <!-- macOS Bluetooth entitlement — required for bleak / CoreBluetooth -->
+  <key>ProcessType</key>
+  <string>Interactive</string>
+
+  <!-- Environment passed to the daemon process -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+  </dict>
+
+</dict>
+</plist>

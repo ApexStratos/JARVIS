@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JARVIS — Spotify Setup</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;color:#fff;font-family:'Courier New',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+  h1{font-size:13px;letter-spacing:8px;color:#00ffff;text-shadow:0 0 16px #00ffff;margin-bottom:6px}
+  .sub{font-size:9px;letter-spacing:4px;color:#007a7a;margin-bottom:40px}
+  .card{background:#050f14;border:1px solid #0a3040;padding:32px;width:min(520px,95vw);display:flex;flex-direction:column;gap:20px}
+  .section-title{font-size:9px;letter-spacing:4px;color:#007a7a;text-transform:uppercase;border-bottom:1px solid #0a3040;padding-bottom:8px}
+  .step{display:flex;gap:14px;align-items:flex-start}
+  .step-num{flex-shrink:0;width:22px;height:22px;border:1px solid #007a7a;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#007a7a}
+  .step-body{font-size:12px;color:#aaa;line-height:1.7}
+  .step-body a{color:#00ffff;text-decoration:none}
+  .step-body a:hover{text-decoration:underline}
+  code{background:#020a0f;border:1px solid #0a3040;padding:2px 6px;color:#00ffff;font-size:11px;word-break:break-all}
+  label{font-size:10px;letter-spacing:2px;color:#007a7a;display:block;margin-bottom:6px}
+  input{width:100%;background:#000;border:1px solid #007a7a;color:#00ffff;font-family:'Courier New',monospace;font-size:12px;padding:10px 12px;outline:none;transition:border-color .2s}
+  input:focus{border-color:#00ffff;box-shadow:0 0 10px #00ffff22}
+  button{width:100%;background:transparent;border:1px solid #00ffff;color:#00ffff;font-family:'Courier New',monospace;font-size:11px;padding:12px;cursor:pointer;letter-spacing:3px;text-transform:uppercase;transition:all .15s}
+  button:hover{background:#001a1a;box-shadow:0 0 12px #00ffff33}
+  .connected{background:#001a0f;border:1px solid #00ff88;padding:14px;text-align:center;color:#00ff88;font-size:11px;letter-spacing:3px}
+  .back{margin-top:20px;font-size:10px;letter-spacing:2px;color:#007a7a;text-decoration:none;display:block;text-align:center}
+  .back:hover{color:#00ffff}
+  .field-group{display:flex;flex-direction:column;gap:8px}
+</style>
+</head>
+<body>
+
+<h1>J.A.R.V.I.S.</h1>
+<div class="sub">SPOTIFY INTEGRATION SETUP</div>
+
+{% if connected %}
+<div class="card">
+  <div class="connected">✓ SPOTIFY CONNECTED — PLAYLISTS ENABLED</div>
+  <div style="font-size:11px;color:#aaa;line-height:1.7;text-align:center">
+    You can now ask JARVIS:<br>
+    <span style="color:#00ffff">"list my playlists"</span> &nbsp;·&nbsp;
+    <span style="color:#00ffff">"play my House playlist"</span> &nbsp;·&nbsp;
+    <span style="color:#00ffff">"shuffle my Chill playlist"</span>
+  </div>
+  <div class="section-title">Re-authorize</div>
+  <form method="POST" action="/setup/spotify/save" style="display:flex;flex-direction:column;gap:12px">
+    <div class="field-group">
+      <label>Client ID</label>
+      <input type="text" name="client_id" value="{{ client_id }}" placeholder="paste your Client ID">
+    </div>
+    <div class="field-group">
+      <label>Client Secret</label>
+      <input type="password" name="client_secret" placeholder="paste your Client Secret">
+    </div>
+    <button type="submit">Re-authorize with Spotify</button>
+  </form>
+</div>
+{% else %}
+<div class="card">
+
+  <div class="section-title">Step 1 — Create a Spotify App</div>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      Go to <a href="https://developer.spotify.com/dashboard" target="_blank">developer.spotify.com/dashboard</a> and click <strong>Create app</strong>.
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      Fill in any name/description. Under <strong>Redirect URIs</strong> add exactly:<br><br>
+      <code>{{ redirect_uri }}</code>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      Set <strong>APIs used</strong> to <em>Web API</em>. Save the app. Then go to <strong>Settings</strong> to copy your <strong>Client ID</strong> and <strong>Client Secret</strong>.
+    </div>
+  </div>
+
+  <div class="section-title">Step 2 — Connect</div>
+  <form method="POST" action="/setup/spotify/save" style="display:flex;flex-direction:column;gap:12px">
+    <div class="field-group">
+      <label>Client ID</label>
+      <input type="text" name="client_id" value="{{ client_id }}" placeholder="paste your Client ID" required>
+    </div>
+    <div class="field-group">
+      <label>Client Secret</label>
+      <input type="password" name="client_secret" placeholder="paste your Client Secret" required>
+    </div>
+    <button type="submit">Authorize with Spotify →</button>
+  </form>
+
+</div>
+{% endif %}
+
+<a class="back" href="/">← Back to JARVIS</a>
+</body>
+</html>

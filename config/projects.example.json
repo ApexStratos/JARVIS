@@ -1,0 +1,27 @@
+{
+  "_comment": "Copy this file to config/projects.json and fill in your own projects. That file is gitignored — nothing here is required for JARVIS to run; PROJECT_STATUS and WEBSCOUT just report 'not configured' until you do.",
+
+  "projects": {
+    "My Project": "/absolute/path/to/my-project"
+  },
+
+  "project_logs": {
+    "My Project": [
+      "/absolute/path/to/my-project/logs/error.log"
+    ]
+  },
+
+  "pm2_services": {
+    "My Project": ["my-project-backend"]
+  },
+
+  "webscout_dir": null,
+
+  "extra_cleanup_scan_roots": [
+    "/absolute/path/to/another/folder/you/want/CLEANUP_SCAN/to/cover"
+  ],
+
+  "extra_protected_paths": [
+    "/absolute/path/to/a/folder/storage_manager.py should never touch (only relevant if JARVIS_AUTO_STORAGE_CLEANUP=1)"
+  ]
+}

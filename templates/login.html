@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>J.A.R.V.I.S. | ACCESS</title>
+
+<!-- PWA / iOS -->
+<link rel="manifest" href="/static/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JARVIS">
+<link rel="apple-touch-icon" href="/static/icons/icon-180.png">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+  :root {
+    --cyan: #00ffff;
+    --cyan-dim: #007a7a;
+    --cyan-glow: #00ffffaa;
+    --amber: #ffb700;
+    --red: #ff3a3a;
+    --bg: #000000;
+    --panel: #050f14;
+    --border: #0a3040;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--cyan);
+    font-family: 'Courier New', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .logo {
+    font-size: clamp(18px, 5vw, 26px);
+    letter-spacing: 12px;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px var(--cyan);
+    margin-bottom: 6px;
+  }
+  .sub {
+    font-size: 10px;
+    letter-spacing: 6px;
+    color: var(--cyan-dim);
+    margin-bottom: 48px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 36px 40px;
+    width: min(340px, 90vw);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card-title {
+    font-size: 9px;
+    letter-spacing: 5px;
+    color: var(--cyan-dim);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  input[type="password"] {
+    width: 100%;
+    background: #000;
+    border: 1px solid var(--cyan-dim);
+    color: var(--cyan);
+    font-family: 'Courier New', monospace;
+    font-size: 22px;
+    padding: 14px 16px;
+    text-align: center;
+    letter-spacing: 8px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-text-security: disc;
+  }
+  input[type="password"]:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 14px var(--cyan-glow);
+  }
+  input[type="password"]::placeholder {
+    color: var(--cyan-dim);
+    letter-spacing: 4px;
+    font-size: 14px;
+  }
+
+  button {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    padding: 14px;
+    cursor: pointer;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  button:hover {
+    background: #001a1a;
+    box-shadow: 0 0 14px var(--cyan-glow);
+  }
+  button:active { opacity: 0.7; }
+
+  .error {
+    color: var(--red);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .footer {
+    margin-top: 40px;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: #0a3040;
+    text-transform: uppercase;
+  }
+
+  @keyframes scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+  }
+  .scanline {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(transparent, rgba(0,255,255,0.04), transparent);
+    animation: scanline 4s linear infinite;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+
+<div class="logo">J.A.R.V.I.S.</div>
+<div class="sub">NEXUS · SECURE ACCESS</div>
+
+<form class="card" method="POST" action="/login">
+  <div class="card-title">Identity Verification</div>
+  <input type="password" name="pin" placeholder="· · · ·" autofocus
+    autocomplete="current-password" inputmode="numeric" maxlength="20">
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+  <button type="submit">Authenticate</button>
+</form>
+
+<div class="footer">Authorized personnel only</div>
+
+<script>
+  document.querySelector('input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') this.closest('form').submit();
+  });
+</script>
+</body>
+</html>
