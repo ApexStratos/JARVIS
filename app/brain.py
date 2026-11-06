@@ -18,6 +18,16 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:latest")
 OLLAMA_REQUEST_TIMEOUT_S = 45   # httpx-level: connect/read ceiling per call
 OLLAMA_STREAM_DEADLINE_S = 60   # wall-clock ceiling across a whole streamed reply
 
+# The system prompt alone (tool list + arg examples + routing rules) runs
+# ~1500 tokens on its own. The old num_ctx=2048 left well under 1000 tokens
+# for actual conversation + tool results — on a model this size, that's
+# enough headroom to silently truncate the system prompt itself (llama.cpp
+# drops from the start of context on overflow), which reads as the model
+# randomly "forgetting" tool-call formatting mid-conversation. Every Ollama
+# model in use here supports much larger context; this costs more RAM, not
+# correctness.
+OLLAMA_NUM_CTX = int(os.environ.get("OLLAMA_NUM_CTX", "8192"))
+
 # BRAIN_PROVIDER picks which backend JarvisBrain talks to — "ollama" (free,
 # local, default) or "anthropic" (Claude, needs ANTHROPIC_API_KEY). Both
 # backends stay wired up; this just switches which one a given process uses.
@@ -71,7 +81,9 @@ Write tool calls on their own line using the real tool name from the TOOLS list 
 
 TOOLS — SEARCH NEWS SHELL OPEN QUIT NOTIFY SPEAK SPEAK_SLOW VOLUME BRIGHTNESS TYPE HOTKEY TIMER CALC CLIPBOARD SYSINFO SCREENSHOT WEATHER TIME STOCKS DEFINE CONVERT WIKIPEDIA SPORTS MOVIES CRYPTO CURRENCY HOROSCOPE GITHUB NEWS_CATEGORY JOKE QUOTE TRIVIA FACT WORD_OF_DAY IP PING SPEEDTEST YOUTUBE MAPS BROWSER_NAV BROWSER_JS BROWSER_DO FLIGHT RECIPE EMAIL CONTACTS MESSAGES FACETIME WHATSAPP TRANSLATE TRANSLATE_AUTO FILE ZIP UNZIP HASH WORD_COUNT QR UUID BASE64 JSON_FORMAT URL_ENCODE PARSE_DATE DIFF ENCODE TEXT_CASE COLOR CALENDAR REMIND NOTES MEMORY_SET MEMORY_GET MEMORY_LIST SPOTIFY MUSIC RADIO PODCAST LOCK SLEEP DARKMODE WIFI BLUETOOTH NIGHTSHIFT FOCUS FOCUS_MODE EMPTY_TRASH PROCESS BATTERY_SAVER APP_LIST SHORTCUT SCREEN_RECORD AIRPLAY ALARM POMODORO STOPWATCH COUNTDOWN REMIND_AT RANDOM SUMMARIZE CLIPBOARD_HIST CLIPBOARD_CLEAR PROJECT_STATUS WEBSCOUT AXIS CLEANUP_SCAN CLEANUP_DELETE DRAFT_OUTREACH SEND_DRAFT LIST_DRAFTS DISCARD_DRAFT CALL_ME
 
-Arg examples: [EMAIL: to|Subject|Body] [SPOTIFY: play X] [ALARM: HH:MM msg] [REMIND_AT: N min|msg] [TEXT_CASE: upper hello world] (mode is one word — upper/lower/title/camel/snake/kebab — then a space, then the text; never a pipe) [CONVERT: 100F to C] [CURRENCY: 100 USD to EUR] [FILE: read|write|list|append path] [WEBSCOUT: niche city] [CLEANUP_DELETE: 3,7,12] [MEMORY_SET: key=value] [CRYPTO: bitcoin] (coin name/symbol required — never call CRYPTO with no arg) [DRAFT_OUTREACH: email|person@example.com|Subject|One short sentence] [SEND_DRAFT: 2] [TRANSLATE: Hello world | Spanish] (always just text | target language — source is auto-detected, never ask the user for the source language) [DIFF: old text ||| new text] (triple pipe, not single) [DARKMODE: on] (arg is on/off when the user names one; omit the arg only for a bare "toggle dark mode") [NOTES: the note text itself] (no "add"/"create" prefix, no pipe — just the content; [NOTES: list] to read recent notes) [QUIT: Calculator] (the exact app name is required — never call QUIT with no arg)
+Arg examples: [EMAIL: to|Subject|Body] [SPOTIFY: play X] [ALARM: HH:MM msg] [REMIND_AT: N min|msg] [TEXT_CASE: upper hello world] (mode is one word — upper/lower/title/camel/snake/kebab — then a space, then the text; never a pipe) [CONVERT: 100F to C] [CURRENCY: 100 USD to EUR] [FILE: read|write|list|append path] [WEBSCOUT: niche city] [CLEANUP_DELETE: 3,7,12] [MEMORY_SET: key=value] [CRYPTO: bitcoin] (coin name/symbol required — never call CRYPTO with no arg) [DRAFT_OUTREACH: email|person@example.com|Subject|One short sentence] [SEND_DRAFT: 2] [TRANSLATE: Hello world | Spanish] (always just text | target language — source is auto-detected, never ask the user for the source language) [DIFF: old text ||| new text] (triple pipe, not single) [DARKMODE: on] (arg is on/off when the user names one; omit the arg only for a bare "toggle dark mode") [NOTES: the note text itself] (no "add"/"create" prefix, no pipe — just the content; [NOTES: list] to read recent notes) [QUIT: Calculator] (the exact app name is required — never call QUIT with no arg) [MEMORY_GET: favorite_color] (when the user asks about something personal they may have told you before — "what's my X", "do you remember Y" — try MEMORY_GET with your best-guess key before saying you don't know; [MEMORY_LIST] to browse everything stored if the key guess comes back empty)
+
+Common mix-ups — pick the right one, and never invent a tool name not in the TOOLS list above: DEFINE = meaning of a word the user named (never WORD_OF_DAY, which is only a random daily word with no arg). CRYPTO = Bitcoin/crypto prices (never CURRENCY, which only converts between fiat currencies like USD/EUR). TIMER = "set a timer for N minutes" (never TIME, which only reads the clock).
 
 CLEANUP_SCAN takes ~30-90s (real disk scan) — mention that briefly rather than going quiet. CLEANUP_DELETE only ever removes IDs from the most recent CLEANUP_SCAN, nothing else — only call it with IDs the user explicitly picked after seeing a scan result, never on your own judgment or with guessed/made-up numbers.
 
@@ -122,7 +134,7 @@ class JarvisBrain:
             "options": {
                 "num_predict": tokens,
                 "temperature": 0,
-                "num_ctx": 2048,
+                "num_ctx": OLLAMA_NUM_CTX,
             },
         }).encode()
         req = urllib.request.Request(
@@ -174,7 +186,7 @@ class JarvisBrain:
             try:
                 resp = _ollama_client.chat(
                     model=self.model, messages=messages, think=False,
-                    options={"num_predict": tokens, "temperature": 0, "num_ctx": 2048},
+                    options={"num_predict": tokens, "temperature": 0, "num_ctx": OLLAMA_NUM_CTX},
                 )
                 return resp["message"]["content"]
             except Exception as e:
@@ -237,7 +249,7 @@ class JarvisBrain:
             elif _OLLAMA_PKG:
                 stream = _ollama_client.chat(
                     model=self.model, messages=ctx, stream=True, think=False,
-                    options={"num_predict": 80, "temperature": 0, "num_ctx": 2048},
+                    options={"num_predict": 80, "temperature": 0, "num_ctx": OLLAMA_NUM_CTX},
                 )
                 for chunk_obj in stream:
                     if time.monotonic() > deadline:
@@ -331,7 +343,7 @@ class JarvisBrain:
             elif _OLLAMA_PKG:
                 stream = _ollama_client.chat(
                     model=self.model, messages=synthesis_msgs, stream=True, think=False,
-                    options={"num_predict": 60, "temperature": 0, "num_ctx": 2048},
+                    options={"num_predict": 60, "temperature": 0, "num_ctx": OLLAMA_NUM_CTX},
                 )
                 for chunk_obj in stream:
                     if time.monotonic() > synthesis_deadline:
