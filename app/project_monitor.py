@@ -7,9 +7,9 @@ status) — using the same dedup-on-content approach project_health.py
 already uses, so a standing state doesn't get re-pushed every cycle, and a
 restart doesn't spam "everything changed" for state that was already there.
 
-Reuses _PROJECTS/_PM2_SERVICES straight from toolkit.py rather than keeping
-a second copy of the project list — one source of truth for what counts as
-"a project."
+Reuses toolkit.py's _load_projects_config() (config/projects.json) rather
+than keeping a second copy of the project list — one source of truth for
+what counts as "a project."
 """
 import json
 import os
@@ -58,11 +58,16 @@ def _push(message: str) -> None:
 
 def run_check_cycle() -> None:
     global _first_cycle
-    from toolkit import _PROJECTS, _PM2_SERVICES
+    from toolkit import _load_projects_config
+    cfg = _load_projects_config()
+    projects = cfg.get("projects", {})
+    pm2_services = cfg.get("pm2_services", {})
+    if not projects:
+        return
 
     pm2_map = _get_pm2_map()
 
-    for name, path in _PROJECTS.items():
+    for name, path in projects.items():
         if not os.path.isdir(path):
             continue
 
@@ -74,7 +79,7 @@ def run_check_cycle() -> None:
                 _push(f"{name}: new commit — {msg[:80]}")
             _last_commit[name] = h
 
-        for svc in _PM2_SERVICES.get(name, []):
+        for svc in pm2_services.get(name, []):
             status = pm2_map.get(svc, "unknown")
             key = f"{name}:{svc}"
             prev_status = _last_pm2_status.get(key)
