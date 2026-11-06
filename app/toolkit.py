@@ -62,6 +62,49 @@ _SAFE_PREFIXES = (
 # indication anything had gone wrong.
 TOOL_PATTERN = re.compile(r'\[([A-Z_]+)(?::\s*(.*?))?\]', re.DOTALL)
 
+# Fallback for weaker models (small local Ollama models, mainly) that
+# sometimes drop the required [...] brackets around a tool call — writing
+# "MEMORY_SET: key=value" or "NOTES: buy milk" as bare text on its own line
+# instead of "[MEMORY_SET: key=value]", despite the prompt showing the
+# bracket format explicitly. Observed repeatedly with NOTES/MEMORY_SET/
+# TEXT_CASE on llama3.2; without this, the call silently leaks as prose and
+# nothing happens. Only matches a real, known tool name at the start of a
+# line, and only outside spans already matched by TOOL_PATTERN, so a normal
+# bracketed call is never double-counted.
+#
+# Deliberately excludes anything consequential enough that an accidental
+# false-positive match (a stray capitalized line that happens to equal a
+# tool name) would be a real problem rather than a harmless no-op/query —
+# destructive actions, real outbound messages/calls, and self-modification
+# all require the real bracket syntax, no fallback.
+_UNBRACKETED_DENYLIST = frozenset({
+    "EMPTY_TRASH", "LOCK", "SLEEP", "SHELL",
+    "SELF_PUSH", "SELF_HEAL", "SELF_UPGRADE",
+    "MESSAGES", "EMAIL", "FACETIME", "WHATSAPP", "CALL_ME",
+})
+_UNBRACKETED_PATTERN = re.compile(r'^([A-Z][A-Z_]+)(?::[ \t]*(.*))?$', re.MULTILINE)
+_KNOWN_TOOLS = frozenset({
+    "AIRPLAY", "ALARM", "APP_LIST", "ARP_SCAN", "AXIS", "BASE64", "BATTERY_SAVER",
+    "BLUETOOTH", "BRIGHTNESS", "BROWSER_JS", "BROWSER_NAV", "CALC", "CALENDAR",
+    "CALL_ME", "CLEANUP_DELETE", "CLEANUP_SCAN", "CLIPBOARD", "CLIPBOARD_CLEAR",
+    "CLIPBOARD_HIST", "COLOR", "CONTACTS", "CONVERT", "COUNTDOWN", "CRYPTO",
+    "CURRENCY", "DARKMODE", "DEFINE", "DIFF", "DISCARD_DRAFT", "DRAFT_OUTREACH",
+    "EMAIL", "EMPTY_TRASH", "ENCODE", "FACETIME", "FACT", "FILE", "FLIGHT",
+    "FOCUS", "FOCUS_MODE", "GITHUB", "HASH", "HOROSCOPE", "HOTKEY", "IP", "JOKE",
+    "JSON_FORMAT", "LIST_DRAFTS", "LOCK", "MAPS", "MATRIX", "MEMORY_GET",
+    "MEMORY_LIST", "MEMORY_SET", "MESSAGES", "MOVIES", "MUSIC", "NEWS",
+    "NEWS_CATEGORY", "NIGHTSHIFT", "NOTES", "NOTIFY", "OCR", "OPEN", "PARSE_DATE",
+    "PING", "PODCAST", "POMODORO", "PROCESS", "PROJECT_STATUS", "QR", "QUIT",
+    "QUOTE", "RADIO", "RANDOM", "RECIPE", "REMIND", "REMIND_AT", "SCREEN_RECORD",
+    "SCREENSHOT", "SEARCH", "SELF_HEAL", "SELF_PUSH", "SELF_UPGRADE",
+    "SEND_DRAFT", "SHELL", "SHORTCUT", "SLEEP", "SPEAK", "SPEAK_SLOW",
+    "SPEEDTEST", "SPORTS", "SPOTIFY", "STOCKS", "STOPWATCH", "SUMMARIZE",
+    "SYSINFO", "TEXT_CASE", "TIME", "TIMER", "TRANSLATE", "TRANSLATE_AUTO",
+    "TRIVIA", "TYPE", "UNZIP", "URL_ENCODE", "UUID", "VISION_DO", "VOLUME",
+    "WEATHER", "WEBSCOUT", "WHATSAPP", "WIFI", "WIKIPEDIA", "WORD_COUNT",
+    "WORD_OF_DAY", "YOUTUBE", "ZIP",
+}) - _UNBRACKETED_DENYLIST
+
 
 def _load_memory():
     if MEMORY_FILE.exists():
@@ -292,7 +335,22 @@ def extract_tools(text: str):
     # group(2) is None when the bracket had no colon (e.g. "[FACT]") since
     # that whole capture group is now optional — normalize to "" so callers
     # don't have to special-case None vs empty-string args.
-    return [(m.group(1), m.group(2) or "") for m in TOOL_PATTERN.finditer(text)]
+    matches = list(TOOL_PATTERN.finditer(text))
+    found = [(m.group(1), m.group(2) or "") for m in matches]
+
+    # See _UNBRACKETED_PATTERN's comment — catches tool calls a weak model
+    # wrote without the required brackets. Skip any line whose span already
+    # overlaps a real bracketed match, so nothing is ever double-counted.
+    covered = [(m.start(), m.end()) for m in matches]
+    for m in _UNBRACKETED_PATTERN.finditer(text):
+        name = m.group(1)
+        if name not in _KNOWN_TOOLS:
+            continue
+        if any(m.start() < e and m.end() > s for s, e in covered):
+            continue
+        found.append((name, (m.group(2) or "").strip()))
+
+    return found
 
 
 def _tool_search(query):
